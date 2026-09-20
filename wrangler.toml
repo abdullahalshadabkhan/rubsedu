@@ -1,0 +1,14 @@
+name = "rajshahi-cantonment-school"
+pages_build_output_dir = "."
+
+# ধাপ ১-এ Cloudflare Dashboard-এ D1 ডেটাবেস তৈরি করার পর সেখানে দেখানো আসল
+# database_id দিয়ে নিচের মানটা বদলে দিন। এই ফাইলটা শুধু দরকার হয়:
+#   - `npx wrangler d1 create ...` / `npx wrangler d1 execute ...` (schema বসানোর জন্য)
+#   - `npx wrangler pages dev .` (নিজের কম্পিউটারে লোকালি functions/api টেস্ট করতে)
+# আপনি যদি Cloudflare Dashboard দিয়ে ("Connect to Git") ডিপ্লয় করেন, তাহলে D1 বাইন্ডিং
+# Pages → Settings → Functions থেকেই কনফিগার হয় — দুটো পদ্ধতিই কাজ করে; প্রোডাকশনে
+# Dashboard-এর বাইন্ডিং সবসময় অগ্রাধিকার পায়।
+[[d1_databases]]
+binding = "DB"                        # হুবহু "DB" নামেই থাকতে হবে — functions/api/[[path]].js এই নামটাই আশা করে
+database_name = "rcpsc-db"
+database_id = "REPLACE-WITH-YOUR-REAL-DATABASE-ID"
