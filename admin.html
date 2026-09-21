@@ -896,6 +896,7 @@ class D1Adapter {
     this._cache = {};     // collection -> rows[] (short-lived read cache; cleared on any write)
     this._inflight = {};  // collection -> in-flight fetch promise (avoids duplicate parallel requests)
     this._localNs = 'rcpsc_v1_cache'; // read-only offline fallback snapshot
+    try { localStorage.removeItem(`${this._localNs}:users`); } catch (_) {} // purge any stale password-hash cache from before this fix
   }
   _headers() {
     const h = { 'Content-Type': 'application/json' };
@@ -907,8 +908,8 @@ class D1Adapter {
     try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (_) {}
     return msg;
   }
-  _cacheLocal(c, rows) { try { localStorage.setItem(`${this._localNs}:${c}`, JSON.stringify(rows)); } catch (_) {} }
-  _readLocalCache(c) { try { return JSON.parse(localStorage.getItem(`${this._localNs}:${c}`)) || []; } catch (_) { return []; } }
+  _cacheLocal(c, rows) { if (c === 'users') return; try { localStorage.setItem(`${this._localNs}:${c}`, JSON.stringify(rows)); } catch (_) {} }
+  _readLocalCache(c) { if (c === 'users') return []; try { return JSON.parse(localStorage.getItem(`${this._localNs}:${c}`)) || []; } catch (_) { return []; } }
 
   invalidate(c) { delete this._cache[c]; }
   invalidateAll() { this._cache = {}; }
