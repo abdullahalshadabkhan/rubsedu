@@ -2447,7 +2447,16 @@ async function charts({ students, classes, payments, results }) {
   const Chart = await waitChart(); if (!Chart) return;
   const green = '#0d3b24', green2 = '#c9a227';
 
-  new Chart(document.getElementById('chStudents'), {
+  // avoid "Canvas is already in use" — destroy any chart already bound to this canvas first
+  const freshCanvas = (id) => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+    return canvas;
+  };
+
+  new Chart(freshCanvas('chStudents'), {
     type: 'bar',
     data: {
       labels: classes.sort((a, b) => a.numeric - b.numeric).map(c => 'Class ' + c.name),
@@ -2462,7 +2471,7 @@ async function charts({ students, classes, payments, results }) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d.toISOString().slice(0, 10);
   });
-  new Chart(document.getElementById('chFees'), {
+  new Chart(freshCanvas('chFees'), {
     type: 'line',
     data: {
       labels: days.map(d => fmtDate(d).slice(0, 6)),
@@ -2472,7 +2481,7 @@ async function charts({ students, classes, payments, results }) {
   });
 
   const grades = ['A+', 'A', 'A-', 'B', 'C', 'D', 'F'];
-  new Chart(document.getElementById('chGrades'), {
+  new Chart(freshCanvas('chGrades'), {
     type: 'doughnut',
     data: {
       labels: grades,
@@ -2482,7 +2491,7 @@ async function charts({ students, classes, payments, results }) {
     options: { responsive: true, maintainAspectRatio: false }
   });
 
-  new Chart(document.getElementById('chDue'), {
+  new Chart(freshCanvas('chDue'), {
     type: 'pie',
     data: {
       labels: ['Collected', 'Due'],
