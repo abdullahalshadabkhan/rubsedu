@@ -1091,41 +1091,11 @@ const Auth = {
     const id = String(identifier || '').toLowerCase().trim();
     const pw = String(password || '');
 
-    // HARD BYPASS: default admin always works (file:// / content:// / Android)
-    if ((id === 'admin@school.com' || id === 'admin') && pw === 'admin123') {
-      const session = {
-        uid: 'admin_default',
-        role: 'admin',
-        name: 'School Admin',
-        email: 'admin@school.com',
-        exp: Date.now() + (remember ? 30 : 8) * 3600e3,
-        tok: 'demo_' + Date.now()
-      };
-      try {
-        (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(session));
-      } catch (_) {
-        window.__SMS_SESSION__ = session;
-      }
-      try {
-        let users = await DB.list('users');
-        let user = users.find(u => (u.email || '').toLowerCase() === 'admin@school.com');
-        if (!user) {
-          user = await Auth.register({
-            name: 'School Admin', email: 'admin@school.com', username: 'admin',
-            password: 'admin123', role: 'admin'
-          });
-        }
-        session.uid = user.id;
-        try { (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(session)); } catch (_) {}
-      } catch (_) {}
-      return session;
-    }
-
     let users = [];
     try { users = await DB.list('users'); } catch (_) {}
     const user = users.find(u => u.email?.toLowerCase() === id || u.username?.toLowerCase() === id);
     if (!user || user.active === false || !(await verifyPassword(pw, user)))
-      throw new Error('Invalid credentials — use admin@school.com / admin123');
+      throw new Error('Invalid credentials');
 
     const ttl = remember ? 30 * 24 * 3600e3 : 8 * 3600e3;
     const session = { uid: user.id, role: user.role, name: user.name, email: user.email, exp: Date.now() + ttl, tok: randB64(24) };
