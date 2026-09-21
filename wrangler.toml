@@ -11,4 +11,4 @@ pages_build_output_dir = "."
 [[d1_databases]]
 binding = "DB"                        # হুবহু "DB" নামেই থাকতে হবে — functions/api/[[path]].js এই নামটাই আশা করে
 database_name = "rcpsc-db"
-database_id = "REPLACE-WITH-YOUR-REAL-DATABASE-ID"
+database_id = "4ce5c49c-9ce9-47f0-b0ae-3dadedafe0db"
