@@ -200,6 +200,32 @@ export async function onRequest(context) {
       return sendSms(request, env);
     }
 
+    /* ---------- Admission form re-download ----------
+       GET /api/admission-lookup?roll=AR20260001&phone=01712345678
+       No admin key needed — access is gated by matching BOTH the
+       Application No and the guardian's phone number against the
+       admissions table. Only that one application is returned — never
+       the whole collection — so an applicant never sees another
+       family's submitted data. */
+    if (parts[0] === 'admission-lookup') {
+      if (request.method !== 'GET') return err('Method not allowed', 405);
+      const url = new URL(request.url);
+      const wantRoll = (url.searchParams.get('roll') || '').trim().toLowerCase();
+      const rawPhone = (url.searchParams.get('phone') || '').trim();
+      const last10 = (v) => String(v || '').replace(/\D/g, '').slice(-10);
+      const wantPhone = last10(rawPhone);
+      if (!wantRoll || !wantPhone) return err('Application No ও Guardian Phone নম্বর দিন', 400);
+      if (wantPhone.length !== 10) return err('সঠিক ফোন নম্বর দিন', 400);
+
+      const admissions = await readAll(env, 'admissions');
+      const app = admissions.find((a) =>
+        String(a.admissionRoll || '').toLowerCase() === wantRoll &&
+        last10(a.guardianPhone) === wantPhone
+      );
+      if (!app) return err('Application No অথবা Guardian Phone সঠিক নয়', 401);
+      return json({ admission: app });
+    }
+
     /* ---------- Guardian/Parent portal ----------
        GET /api/parent-portal?studentId=STD1001&phone=01712345678
        No admin key needed — access is gated by matching BOTH the student's

@@ -95,14 +95,14 @@ header.site::after{content:'';display:block;height:5px;background:linear-gradien
 .menu a.active{background:rgba(255,255,255,.18);color:#fff}
 .menu li:last-child a{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#2a1f00!important;font-weight:700;border-radius:8px;margin-left:6px}
 /* ---------- notice ticker ---------- */
-.ticker-bar{background:var(--brand-soft);border-bottom:1px solid var(--line);overflow:hidden;position:sticky;top:0;z-index:59}
+.ticker-bar{background:var(--brand-soft);border-bottom:1px solid var(--line);overflow:hidden}
 .ticker-bar .container{display:flex;align-items:center;gap:12px;padding:0}
 .ticker-tag{flex:0 0 auto;background:var(--maroon);color:#fff;font-weight:700;font-size:.8rem;padding:7px 14px;display:flex;align-items:center;gap:6px}
 .ticker-view{flex:1;overflow:hidden;white-space:nowrap;position:relative;height:34px}
-.ticker-track{display:inline-flex;gap:60px;position:absolute;white-space:nowrap;animation:ticker-scroll 28s linear infinite;padding-left:100%;align-items:center;height:34px}
+.ticker-track{display:inline-flex;gap:60px;position:absolute;white-space:nowrap;animation:ticker-scroll 22s linear infinite;align-items:center;height:34px;left:0}
 .ticker-track a{color:var(--brand);font-size:.86rem;font-weight:600}
 .ticker-bar:hover .ticker-track{animation-play-state:paused}
-@keyframes ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@keyframes ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .mobile-menu{display:none}
 .burger{display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);border-radius:9px;padding:8px 11px;font-size:1.2rem;cursor:pointer;color:#fff}
 
@@ -1220,7 +1220,8 @@ async function loadNoticeTicker() {
     const notices = await DB.list('notices');
     const pub = notices.filter(n => n.published).sort((a, b) => (b.date || '').localeCompare(a.date)).slice(0, 8);
     if (!pub.length) { host.style.display = 'none'; return; }
-    track.innerHTML = pub.map(n => `<a href="#/notice">🔸 ${esc(n.title || '')}</a>`).join('');
+    const items = pub.map(n => `<a href="#/notice">🔸 ${esc(n.title || '')}</a>`).join('');
+    track.innerHTML = items + items; // duplicated for a seamless infinite loop
   } catch (_) { host.style.display = 'none'; }
 }
 
@@ -2038,10 +2039,6 @@ async function pageHome(host) {
     <section class="hero" id="hero"></section>
     <section class="stats" id="statStrip"></section>
     <section class="section alt"><div class="container" id="introBox"></div></section>
-    <section class="section"><div class="container">
-      ${secHead('Leadership', 'নেতৃবৃন্দের বাণী', 'পরিচালনা পর্ষদ ও প্রশাসনের পক্ষ থেকে শুভেচ্ছা বার্তা।')}
-      <div class="grid g4" id="leaderBox"></div>
-    </div></section>
     <section class="section"><div class="container"><div class="grid g2">
       <div class="card card-pad">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -2126,6 +2123,16 @@ async function pageAdmission(host) {
 
   host.innerHTML = `<section class="section alt"><div class="container" style="max-width:840px">
     ${secHead('Admission', 'ভর্তির আবেদন ফরম', 'নিচের ফরমটি সঠিকভাবে পূরণ করে জমা দিন। আবেদন যাচাই করে আমাদের অফিস থেকে আপনার সাথে যোগাযোগ করা হবে।')}
+    <div class="card card-pad" style="margin-bottom:20px">
+      <h4 style="margin:0 0 4px">🔁 আগের জমা দেওয়া আবেদন ফরম পুনরায় ডাউনলোড</h4>
+      <p class="muted" style="font-size:.85rem;margin:0 0 12px">Application No ও অভিভাবকের ফোন নম্বর দিয়ে আগের আবেদনের কপি আবার ডাউনলোড করুন।</p>
+      <div class="grid g3" style="align-items:end">
+        <div class="field" style="margin:0"><label>Application No</label><input class="input" id="lookupRoll" placeholder="AR20260001"></div>
+        <div class="field" style="margin:0"><label>Guardian Phone</label><input class="input" id="lookupPhone" placeholder="017XXXXXXXX"></div>
+        <button class="btn btn-outline" id="lookupBtn" style="margin-bottom:14px">🔍 খুঁজুন ও ডাউনলোড করুন</button>
+      </div>
+      <p class="err" id="lookupErr" style="display:none;margin-top:8px"></p>
+    </div>
     <div class="card card-pad" id="admWrap">
       <form id="admForm" autocomplete="off">${formHTML(FIELDS, {})}</form>
       <div class="center" style="margin-top:16px"><button class="btn" id="admSubmit">✅ আবেদন জমা দিন</button></div>
@@ -2160,6 +2167,27 @@ async function pageAdmission(host) {
     </div>`;
     openPrintWindow('Admission Application - ' + app.name, body);
   }
+
+  document.getElementById('lookupBtn').onclick = async () => {
+    const errEl = document.getElementById('lookupErr');
+    errEl.style.display = 'none';
+    const roll = document.getElementById('lookupRoll').value.trim();
+    const phone = document.getElementById('lookupPhone').value.trim();
+    if (!roll || !phone) { errEl.textContent = 'Application No ও ফোন নম্বর দুটোই দিন'; errEl.style.display = 'block'; return; }
+    const btn = document.getElementById('lookupBtn');
+    btn.disabled = true; btn.textContent = 'খোঁজা হচ্ছে…';
+    try {
+      const res = await fetch(`${APP_CONFIG.apiBase}/admission-lookup?roll=${encodeURIComponent(roll)}&phone=${encodeURIComponent(phone)}`);
+      const out = await res.json();
+      if (!res.ok) throw new Error(out.error || 'আবেদন খুঁজে পাওয়া যায়নি');
+      printAdmissionForm(out.admission);
+    } catch (e) {
+      errEl.textContent = e.message || 'আবেদন খুঁজে পাওয়া যায়নি';
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = '🔍 খুঁজুন ও ডাউনলোড করুন';
+    }
+  };
 
   document.getElementById('admSubmit').onclick = async () => {
     const w = document.getElementById('admWrap');
